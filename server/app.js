@@ -4,6 +4,7 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require("body-parser");
 const axios = require("axios");
+const cors = require('cors');
 
 const app = express();
 
@@ -24,11 +25,36 @@ app.use(bodyParser.urlencoded({
 }));
 app.use(bodyParser.json());
 
+app.use(cors())
+
 app.enable('trust proxy');
 
-app.post('/api/fetchStockData', (req, res) => {
+app.post('/api/fetchStockData',async (req, res) => {
     // YOUR CODE GOES HERE, PLEASE DO NOT EDIT ANYTHING OUTSIDE THIS FUNCTION
-    res.sendStatus(200);
+    try {
+        
+        const { stockSymbol, date } = req.body;
+        // You need to replace 'YOUR_POLYGON_API_KEY' with your actual Polygon API key
+        const apiKey = process.env.POLYGON_API_KEY;
+        const apiUrl = `https://api.polygon.io/v2/aggs/ticker/${stockSymbol}/range/1/day/${date}/${date}?apiKey=${apiKey}`;
+    
+        const response = await axios.get(apiUrl);
+        // Extract the required fields (Open, High, Low, Close, Volume) from the API response
+        const { results } = response.data;
+        const { o, h, l, c, v } = results[0];
+    
+        const stockData = {
+          open: o,
+          high: h,
+          low: l,
+          close: c,
+          volume: v,
+        };
+    
+        res.json(stockData);
+      } catch (error) {
+        res.status(500).json({ error: 'Error fetching stock data' });
+      }
 });
 
 const port = process.env.PORT || 5000;
